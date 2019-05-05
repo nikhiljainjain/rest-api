@@ -1,6 +1,6 @@
 {
     "env":{
-        "pw":"qwerty1234",
-        "JWT_KEY" :"secret"
+        "pw":"<database password>",
+        "JWT_KEY" :"<private key>"
     }
 }
