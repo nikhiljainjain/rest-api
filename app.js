@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const productRoutes = require('./api/routes/product');
 const orderRoutes = require('./api/routes/order');
 const userRoutes = require('./api/routes/user');
-mongoose.connect('mongodb://Aadish09:'+process.env.pw+'@ds151076.mlab.com:51076/rest-api',{useNewUrlParser: true});
+mongoose.connect('mongodb://<username>:'+process.env.pw+'@ds151076.mlab.com:51076/rest-api',{useNewUrlParser: true});
 
 mongoose.Promise=global.Promise;
 app.use(morgan('dev'));
