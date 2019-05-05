@@ -2,9 +2,32 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/product');
 const mongoose = require("mongoose");
+const multer = require('multer'); //allows parsing of binary data i.e files
+const checkAuth = require('../middleware/check-auth');
+const storage = multer.diskStorage({
+    destination:(req,file,cb)=>{
+        cb(null,'uploads/')
+    },
+    filename:(req,file,cb)=>{
+        cb(null,new Date().toISOString().replace(/:/g,'-')+'-'+file.originalname);
+    }
+});
+//accepting and rejecting file
+// const fileFilter=(req,file,cb)=>{
+//     if(file.mimetype==='image/jpeg' || file.mimetype==='image/png'){
+//         cb(null,true);
+//     }else{
+//         cb(null,false);
+//     }
+    
+// }
+
+
+const upload = multer({storage:storage,limits:{fileSize:1024*1024*5}});
+
 router.get('/',(req,res,next)=>{
     Product.find()
-    .select('name price _id') ///fetches only these three fields 
+    .select('name price _id productImage') ///fetches only these three fields 
     .exec()
     .then(docs=>{
         const response ={
@@ -14,6 +37,7 @@ router.get('/',(req,res,next)=>{
                     name: doc.name,
                     price:doc.price,
                     _id:doc._id,
+                    productImage:doc.productImage,
                     request:{
                         type:'GET',
                         url :'http://localhost:3000/products/'+ doc._id
@@ -32,21 +56,20 @@ router.get('/',(req,res,next)=>{
     
 });
 
-router.post('/',(req,res,next) =>{
-    
+router.post('/',checkAuth,upload.single('productImage'),(req,res,next) =>{
+    console.log(req.file);
      const product = new Product({
          _id : new mongoose.Types.ObjectId(),
          name : req.body.name,
-         price: req.body.price
+         price: req.body.price,
+         productImage:req.file.path
      });
     product.save()
     .then(result => {console.log(result);
         res.status(201).json({
             message:"Created Product succesfully",
             product: {
-                name: result.name,
-                price:result.price,
-                _id:result._id,
+               product:result,
                 request:{
                     type:'GET',
                     url:"http://localhost:3000/products/"+result._id
@@ -62,13 +85,12 @@ router.post('/',(req,res,next) =>{
 
 router.get("/:productId",(req,res,next)=>{
     const id= req.params.productId;
-   Product.findById(id).exec()
+   Product.findById(id)
+   .select('name price _id productImage')
    .then(doc=>{
         console.log(doc);
         if(doc){res.status(200).json({
-            name:doc.name,
-            price:doc.price,
-            id:doc._id,
+            product:doc
         });}
         else{res.status(404).json({message :'not found'})
         }
@@ -80,7 +102,7 @@ router.get("/:productId",(req,res,next)=>{
     
 });
 
-router.patch("/:productId",(req,res,next)=>{
+router.patch("/:productId",checkAuth,(req,res,next)=>{
     const id=req.params.productId;
     const updateOps ={};
     for(const ops of req.body){
@@ -103,10 +125,10 @@ router.patch("/:productId",(req,res,next)=>{
     
 });
 
-router.delete("/:productId",(req,res,next)=>{
+router.delete("/:productId",checkAuth,(req,res,next)=>{
     const id=req.params.productId;
   
-    Product.remove({_id:id}).exec()
+    Product.remove({_id:id})
     .then(result=>{
         res.status(200).json({
             message:'Product successfuly deleted'
